@@ -1,0 +1,52 @@
+Device = 18F2550
+Clock = 20        
+
+// import libraries...   
+Include "usart.bas"
+Include "convert.bas"
+Include "I2C.bas"
+
+Dim nDevices As Byte
+
+Sub ScanForDevices()
+   Dim addrs, error As Byte
+
+   nDevices = 0 ' reset 
+
+   For addrs = 0 To 126 Step 2
+      I2C.Start()
+      I2C.WriteByte(addrs)
+      I2C.Stop()
+
+      If (I2C.NotAcknowledged = true) Then
+      	error = 1    ' no device
+      Else
+      	error = 0    ' device detected
+      EndIf 
+
+      If error = 0 Then   ' no error we have found a device.
+         USART.Write("$", HexToStr(addrs), 13, 10)
+         Inc(nDevices)    ' found a device so add number of device.
+      End If
+
+      ' add a little delay betweens transactions for some slow slave devices
+      DelayUS(100)
+   Next
+
+   USART.Write(DecToStr(nDevices), " I2C device(s) found", 13, 10)
+End Sub
+
+// init I2C... 
+   I2C.Initialize(I2C_100_KHZ)
+
+// start serial...
+   USART.SetBaudrate(br19200)
+   USART.Write("I2C Scanner", 13, 10)
+   USART.Write("By Gavin Wiggett (Bitfogav)", 13, 10)
+
+// main prog loop...
+While true 
+   USART.Write("Scanning for Devices..", 13, 10)
+   ScanForDevices()
+   DelayMS(5000)  ' 5sec delay between bus reads. 
+Wend
